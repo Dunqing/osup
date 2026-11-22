@@ -35,6 +35,7 @@ typos       | typos --version            | brew:typos-cli gh-release:crate-ci/ty
 ripgrep     | rg --version               | brew:ripgrep apt:ripgrep cargo:ripgrep                                                                                 |              |
 ast-grep    | ast-grep --version         | brew:ast-grep gh-release:ast-grep/ast-grep/app-x86_64-unknown-linux-gnu.zip vp:@ast-grep/cli npm:@ast-grep/cli |              |
 cf          | cloudflare --version       | vp:cf npm:cf                                                                                                           |              |
+jq          | jq --version               | brew:jq apt:jq                                                                                                         |              |
 age         | age --version              | brew:age apt:age                                                                                                       |              |
 sops        | sops --version             | brew:sops go:github.com/getsops/sops/v3/cmd/sops                                                                       |              |
 bw          | bw --version               | vp:@bitwarden/cli brew:bitwarden-cli npm:@bitwarden/cli                                                                |              |
