@@ -1,7 +1,8 @@
 #!/bin/bash
-# Session-start hook. Updates the osup clone, copies changed cloud scripts from it,
-# installs cloud tools that are missing, and re-runs setup-repo for each checkout whose
-# fingerprint (fp) changed since its last setup. Prints only what it did or what failed.
+# Session-start hook. Updates the osup clone, copies changed cloud scripts from it, merges
+# osup's entries into ~/.claude/settings.json, installs cloud tools that are missing, and
+# re-runs setup-repo for each checkout whose fingerprint (fp) changed since its last setup.
+# Prints only what it did or what failed.
 . /opt/devtools/lib.sh
 touch "$OPT/state/.checked"
 src=$(cat "$OPT/src" 2> /dev/null)
@@ -11,6 +12,8 @@ if [ -d "$src/.git" ]; then
         cmp -s "$src/cloud/$f" "$OPT/$f" || { install_scripts "$src/cloud" && . "$OPT/lib.sh"; break; }
     done
 fi
+claude_settings 2> /tmp/refresh-settings.log ||
+    echo "Environment: could not update ~/.claude/settings.json; see /tmp/refresh-settings.log."
 et $BASE_TOOLS $CLOUD_TOOLS gh-stack > /tmp/refresh-tools.log 2>&1 ||
     echo "Environment: some cloud tools could not be installed; see /tmp/refresh-tools.log."
 cd "$(cat "$OPT/base")" 2> /dev/null || exit 0

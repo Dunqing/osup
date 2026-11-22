@@ -86,7 +86,10 @@ key and Stop hook expect the agent's identity. Run it for a repository added mid
 
 The environment saves the container after setup; later sessions start from that snapshot
 without running setup again. At each session start, `refresh` updates the clone in
-`/opt/osup`, copies changed cloud scripts, installs missing cloud tools, and re-runs
+`/opt/osup`, copies changed cloud scripts, merges the same `~/.claude/settings.json` entries
+as `setup.sh` (so new auto-mode rules reach existing environments; a change to them applies
+from the second session start after the push, since the first one still runs the old
+`refresh`), installs missing cloud tools, and re-runs
 `setup-repo` for a checkout whose pins, lockfiles, coverage-suite or submodule commits, or
 `setup-repo` itself changed. A change pushed here reaches existing environments without
 editing them.

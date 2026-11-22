@@ -36,6 +36,47 @@ install_scripts() {
     done
 }
 
+# claude_settings: merge the SessionStart hook, attribution and auto-mode rules into
+# ~/.claude/settings.json, keeping other keys; writes only when something changes. Run by
+# setup.sh and, so existing environments pick up changes, by refresh.
+claude_settings() {
+    mkdir -p ~/.claude && python3 - << 'PY'
+import json, os
+p = os.path.expanduser("~/.claude/settings.json")
+s = json.load(open(p)) if os.path.exists(p) else {}
+before = json.dumps(s, sort_keys=True)
+hooks = s.setdefault("hooks", {}).setdefault("SessionStart", [])
+cmd = {"type": "command", "command": "/opt/devtools/refresh", "timeout": 900}
+if not any(h.get("command") == cmd["command"] for e in hooks for h in e.get("hooks", [])):
+    hooks.append({"hooks": [cmd]})
+# No Co-Authored-By trailer, PR footer, or session link, in any repository. Empty strings,
+# not `attribution: false`, which older Claude Code versions reject along with the file.
+a = s.get("attribution")
+s["attribution"] = {**(a if isinstance(a, dict) else {}), "commit": "", "pr": "", "sessionUrl": False}
+# Auto mode: the user's standing rules, so the classifier doesn't stop them. Prose entries,
+# with "$defaults" keeping the built-in rules.
+am = s.get("autoMode")
+am = s["autoMode"] = am if isinstance(am, dict) else {}
+rules = {
+    "environment": "Commits are authored and committed as the user, with the name and email of "
+    "their own recent commits in that repository set through GIT_AUTHOR_* and GIT_COMMITTER_* "
+    "environment variables. This is the user's standing rule, not impersonation.",
+    "allow": "git push --force-with-lease (including --atomic) of non-default branches that the "
+    "agent created or rebased in this session, such as stacked PR branches, is pre-approved by "
+    "the user. The default branch and branches owned by others are not covered.",
+}
+for k, rule in rules.items():
+    l = am.get(k)
+    l = am[k] = l if isinstance(l, list) else []
+    if "$defaults" not in l:
+        l.insert(0, "$defaults")
+    if rule not in l:
+        l.append(rule)
+if json.dumps(s, sort_keys=True) != before:
+    json.dump(s, open(p, "w"), indent=2)
+PY
+}
+
 # pin node|cargo-shear VERSION: install a pinned version once (serialized across jobs, atomic).
 pin() {
     [ ! -d "$OPT/$1-$2" ] || return 0
