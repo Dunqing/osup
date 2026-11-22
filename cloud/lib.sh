@@ -3,8 +3,12 @@
 # Linux x86_64 cloud containers only; sourced by bash.
 OPT=/opt/devtools
 BIN=$HOME/.local/bin
-NPM=$OPT/node-system/bin/npm # the image's own npm, for global CLIs (not the pinned Node's)
-export PATH="$BIN:$PATH"
+# npm for global CLIs: the image's own when it has a Node, else the pinned one (pick).
+NPM=$OPT/node-system/bin/npm
+[ -x "$NPM" ] || NPM=$BIN/npm
+# Tools from tools.list that a stock image (ubuntu:24.04) lacks and the scripts here need:
+# installed first, serially. go is for the gh-stack build.
+BASE_TOOLS="curl python3 xz unzip cc rust go"
 # Machine tools from tools.list that every checkout uses. gh-stack is built separately (~25s).
 CLOUD_TOOLS="just cargo-insta watchexec ast-grep"
 CLOUD_SCRIPTS="lib.sh pick setup-repo refresh"
@@ -15,6 +19,14 @@ et() {
     d=$(cat "$OPT/src" 2> /dev/null) && [ -f "$d/ensure-tools.sh" ] || return 0
     bash "$d/ensure-tools.sh" "$@"
 }
+
+# use_tool_path: PATH with the directories ensure-tools installs into (~/.cargo/bin, ...).
+use_tool_path() {
+    local p
+    p=$(et --path 2> /dev/null) && [ -n "$p" ] && PATH=$p
+    export PATH="$BIN:$PATH"
+}
+use_tool_path
 
 # install_scripts DIR: copy the cloud scripts to /opt/devtools (rename, so a running copy is safe).
 install_scripts() {
@@ -42,6 +54,11 @@ pin() {
     ) 9> "$OPT/.lock" || r=$?
     rm -rf "$t"
     return $r
+}
+
+# npm_global PACKAGE BINARY: install an npm package globally and link BINARY into $BIN.
+npm_global() {
+    "$NPM" i -g --no-update-notifier --no-audit --no-fund "$1" && ln -sf "$("$NPM" prefix -g)/bin/$2" "$BIN/$2"
 }
 
 # fp: run in a checkout; a hash of what setup-repo depends on (pins, JS lockfiles, coverage-suite

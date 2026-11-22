@@ -11,7 +11,7 @@ if [ -d "$src/.git" ]; then
         cmp -s "$src/cloud/$f" "$OPT/$f" || { install_scripts "$src/cloud" && . "$OPT/lib.sh"; break; }
     done
 fi
-et $CLOUD_TOOLS gh-stack > /tmp/refresh-tools.log 2>&1 ||
+et $BASE_TOOLS $CLOUD_TOOLS gh-stack > /tmp/refresh-tools.log 2>&1 ||
     echo "Environment: some cloud tools could not be installed; see /tmp/refresh-tools.log."
 cd "$(cat "$OPT/base")" 2> /dev/null || exit 0
 for g in */.git */*/.git; do

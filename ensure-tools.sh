@@ -80,7 +80,7 @@ run_script() {
             curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin" ;;
         viteplus) # Vite+ (`vp`): also provides node, npm, and pnpm shims. VP_NODE_MANAGER=yes skips its prompt.
             curl -fsSL https://vite.plus | VP_NODE_MANAGER=yes bash ;;
-        rustup) curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path ;;
+        rustup) curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal -c clippy -c rustfmt ;;
         gh-stack-rest) # gh-stack built to use REST only, for cloud sessions that refuse GraphQL.
             bash "$script_dir/gh-stack-rest/build.sh" ;;
         *) printf 'Unknown install script: %s\n' "$1" >&2; return 1 ;;
@@ -141,7 +141,8 @@ install_with() {
         brew:*) brew install "$value" ;;
         apt:*)
             if ! $apt_updated; then as_root apt-get update -qq; apt_updated=true; fi
-            as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$value" ;;
+            # Wait for a parallel apt-get rather than fail on its lock.
+            as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq -o DPkg::Lock::Timeout=300 "$value" ;;
         # From $HOME so a project's Node.js pin does not choose the runtime.
         vp:*) (cd "$HOME" && vp install --global "$value") ;;
         npm:*) npm install --global "$value" ;;

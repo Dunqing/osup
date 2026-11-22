@@ -29,6 +29,17 @@ done
 ln -sf "$OPT/setup-repo" "$BIN/setup-repo"
 for t in node npm npx corepack cargo-shear; do ln -sf "$OPT/pick" "$BIN/$t"; done
 FAILED=""
+# What a stock image lacks (a C toolchain, rustup, Go, ...), before anything uses it.
+et $BASE_TOOLS || FAILED+=" base-tools"
+use_tool_path # rustup has just made ~/.cargo/bin
+# Shells in the session find what is installed under ~/.local/bin and ~/.cargo/bin.
+cat > /etc/profile.d/osup.sh << 'SH'
+for d in "$HOME/.cargo/bin" "$HOME/.local/bin"; do
+    case ":$PATH:" in *":$d:"*) ;; *) PATH="$d:$PATH" ;; esac
+done
+export PATH
+SH
+grep -qs profile.d/osup.sh ~/.bashrc || echo '. /etc/profile.d/osup.sh' >> ~/.bashrc
 
 claude_setup() {
     mkdir -p ~/.claude
@@ -55,7 +66,9 @@ credentials; use the read-only clone only if that is refused), clone it where ad
 run `setup-repo <checkout-dir>` once before building or testing in it. Re-run it if a tool or
 dependency seems missing. In Oxc, run `just submodules` before ESTree conformance work
 (estree-conformance isn't pre-cloned). GraphQL is blocked here: use `gh api` (REST), the GitHub
-tools, and `gh stack` (a REST build, see Dunqing/osup gh-stack-rest).
+tools, and `gh stack` (a REST build, see Dunqing/osup gh-stack-rest). Sessions usually start with
+only the repository the task is about; if a task also needs rolldown/rolldown or oxc-project/oxc
+(for example a Rolldown bug that may come from Oxc), attach it as above and run `setup-repo` on it.
 MD
     [ -n "$dotfiles" ] || grep -qs 'Dunqing/dotfiles' ~/.claude/CLAUDE.md ||
         echo "Dunqing/dotfiles isn't attached to this session, so the user's personal skills and guide aren't loaded; say so if a task needs them." >> ~/.claude/CLAUDE.md

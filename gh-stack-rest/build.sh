@@ -2,13 +2,18 @@
 # Build the latest gh-stack release with REST calls in place of GraphQL and install it
 # as the `gh stack` extension. For Claude Code cloud sessions, whose GitHub proxy refuses
 # GraphQL and `gh extension install`; ensure-tools runs it as `script:gh-stack-rest`.
-# Needs git, python3 and Go. Bash 3.2 compatible.
+# Needs git, python3 and Go; installs python3 and Go through ensure-tools when missing.
+# Bash 3.2 compatible.
 set -euo pipefail
 here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo=https://github.com/github/gh-stack
+command -v python3 > /dev/null && command -v go > /dev/null || bash "$here/../ensure-tools.sh" python3 go || true
 for tool in git python3 go; do
     command -v "$tool" > /dev/null || { printf 'gh-stack-rest: needs %s\n' "$tool" >&2; exit 1; }
 done
+# A distribution's Go (apt golang-go) may be older than gh-stack's go.mod and set
+# GOTOOLCHAIN=local; auto downloads the toolchain go.mod asks for.
+export GOTOOLCHAIN="${GOTOOLCHAIN:-auto}"
 # Newest vX.Y.Z tag (the releases API is blocked in cloud sessions; git tags are not).
 version="$(git ls-remote --tags --refs "$repo" | sed -n 's#.*refs/tags/v\([0-9]*\.[0-9]*\.[0-9]*\)$#\1#p' |
     sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)"

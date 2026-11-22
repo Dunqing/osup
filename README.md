@@ -30,7 +30,9 @@ install the latest version, and pass its check afterwards.
 
 Claude Code cloud sessions refuse GitHub GraphQL, which `gh stack` uses to find, create and
 update PRs. There `gh-stack` falls through to `script:gh-stack-rest`:
-[`build.sh`](gh-stack-rest/build.sh) clones the latest gh-stack release,
+[`build.sh`](gh-stack-rest/build.sh) installs Go through `ensure-tools` if it is missing
+(with `GOTOOLCHAIN=auto`, so an older distribution Go fetches the version gh-stack needs), clones
+the latest gh-stack release,
 [`apply.py`](gh-stack-rest/apply.py) points each GraphQL method at its REST version in
 [`ccr_rest.go`](gh-stack-rest/ccr_rest.go) (ready-for-review and auto-merge use the proxy's
 `/ccr/` routes), and the build is installed as a pinned extension reporting
@@ -40,16 +42,24 @@ the merge wizard defaults to squash rather than the last-used method.
 
 ## Cloud environments
 
-The environment's setup script clones this repository and runs the setup from the
-directory holding the session's checkouts:
+The environment's setup script clones this repository and runs the setup, as root, from
+the directory holding the session's checkouts. The first line is for images without git,
+such as a stock `ubuntu:24.04`:
 
 ```bash
 #!/bin/bash
+command -v git > /dev/null || { apt-get update -qq && apt-get install -y -qq git ca-certificates; }
 S=/opt/osup
 [ -d $S/.git ] || git clone -q --depth 1 https://github.com/Dunqing/osup $S ||
   { echo "setup: could not clone Dunqing/osup" >&2; exit 0; }
 bash $S/cloud/setup.sh claude      # or codex, gemini
 ```
+
+The setup needs root (it writes `/opt/devtools` and `/etc/profile.d` and installs with apt) on
+Linux x86_64. It works on the Claude Code cloud image, which already has most tools, and on a
+stock Ubuntu image, where it installs what is missing through `ensure-tools`: curl, python3,
+xz, unzip, a C toolchain, rustup and Go (`BASE_TOOLS` in `lib.sh`); a repository's pinned Node
+from `.node-version`, and pnpm when no image Node provides it.
 
 [`cloud/setup.sh`](cloud/setup.sh) always exits 0 (a failing setup script stops the session
 from starting) and lists failures at the end. It:
@@ -58,6 +68,8 @@ from starting) and lists failures at the end. It:
   and [`refresh`](cloud/refresh) to `/opt/devtools`, and links `pick` as `node`, `npm`,
   `npx`, `corepack` and `cargo-shear`, so each runs the version pinned by the nearest
   `.node-version` or `justfile` (installed on first use);
+- installs the `BASE_TOOLS` that are missing and puts `~/.local/bin` and `~/.cargo/bin` on
+  shells' `PATH` (`/etc/profile.d/osup.sh`, sourced from `~/.bashrc`);
 - installs each checkout's pinned Rust toolchain and the `CLOUD_TOOLS` from `lib.sh`, then
   runs `setup-repo` for every checkout, the `gh-stack` build and, when a `dotfiles`
   checkout is present, its agent profile installer, in parallel (logs in `/tmp/setup-*.log`);

@@ -26,7 +26,11 @@ oh-my-zsh   | test -d "$HOME/.oh-my-zsh" | script:oh-my-zsh                     
 starship    | starship --version         | brew:starship script:starship                                                                                          | curl         |
 viteplus    | vp help                    | script:viteplus                                                                                                        | curl         |
 python3     | python3 --version          | brew:python apt:python3                                                                                                |              |
-rust        | cargo --version            | script:rustup                                                                                                          | curl         |
+xz          | xz --version               | brew:xz apt:xz-utils                                                                                                   |              |
+unzip       | unzip -v                   | brew:unzip apt:unzip                                                                                                   |              |
+cc          | cc --version               | apt:build-essential manual:xcode-select --install                                                                      |              |
+go          | go version                 | brew:go apt:golang-go                                                                                                  |              |
+rust        | cargo --version            | script:rustup                                                                                                          | curl cc      |
 just        | just --version             | brew:just gh-release:casey/just/just-{tag}-x86_64-unknown-linux-musl.tar.gz apt:just cargo:just                        |              |
 cargo-insta | cargo-insta --version      | brew:cargo-insta gh-release:mitsuhiko/insta/cargo-insta-x86_64-unknown-linux-musl.tar.xz cargo:cargo-insta             |              |
 watchexec   | watchexec --version        | brew:watchexec gh-release:watchexec/watchexec/watchexec-{v}-x86_64-unknown-linux-musl.tar.xz cargo:watchexec-cli       |              |

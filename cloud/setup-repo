@@ -17,6 +17,9 @@ if [ -n "$S" ]; then
     [ -s "$OPT/cargo-shear.default" ] || echo "$S" > "$OPT/cargo-shear.default"
 fi
 rusttc
+# pnpm without an image Node: the latest from npm, which switches to package.json's
+# packageManager version itself.
+[ ! -f pnpm-lock.yaml ] || command -v pnpm > /dev/null || npm_global pnpm pnpm
 case $name in
     oxc)
         # Skip tasks/e2e (its lit tarball comes from codeload.github.com, refused in Claude Code
@@ -24,11 +27,13 @@ case $name in
         pnpm install --frozen-lockfile --filter '!./tasks/e2e'
         node .github/scripts/clone-parallel.mjs true true true false true
         just update-transformer-fixtures
-        python3 -m pip install -q --root-user-action=ignore brotli ;; # compressed-size checks
+        # brotli for compressed-size checks; a stock Ubuntu python3 has no pip.
+        python3 -c 'import brotli' 2> /dev/null ||
+            python3 -m pip install -q --root-user-action=ignore brotli 2> /dev/null ||
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq -o DPkg::Lock::Timeout=300 python3-brotli ;;
     rolldown)
         # Vite+ from npm: its install script would also replace node/npm with its own shims.
-        "$NPM" i -g --no-update-notifier --no-audit --no-fund vite-plus
-        ln -sf "$("$NPM" prefix -g)/bin/vp" "$BIN/vp"
+        npm_global vite-plus vp
         et cargo-deny typos
         vp install
         git submodule update --init --depth 1 ;;
