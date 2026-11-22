@@ -32,14 +32,20 @@ FAILED=""
 
 claude_setup() {
     mkdir -p ~/.claude
-    python3 - << 'PY' || FAILED+=" claude-hook"
+    python3 - << 'PY' || FAILED+=" claude-settings"
 import json, os
 p = os.path.expanduser("~/.claude/settings.json")
 s = json.load(open(p)) if os.path.exists(p) else {}
+before = json.dumps(s, sort_keys=True)
 hooks = s.setdefault("hooks", {}).setdefault("SessionStart", [])
 cmd = {"type": "command", "command": "/opt/devtools/refresh", "timeout": 900}
 if not any(h.get("command") == cmd["command"] for e in hooks for h in e.get("hooks", [])):
     hooks.append({"hooks": [cmd]})
+# No Co-Authored-By trailer, PR footer, or session link, in any repository. Empty strings,
+# not `attribution: false`, which older Claude Code versions reject along with the file.
+a = s.get("attribution")
+s["attribution"] = {**(a if isinstance(a, dict) else {}), "commit": "", "pr": "", "sessionUrl": False}
+if json.dumps(s, sort_keys=True) != before:
     json.dump(s, open(p, "w"), indent=2)
 PY
     grep -qs setup-repo ~/.claude/CLAUDE.md || cat >> ~/.claude/CLAUDE.md << 'MD'
