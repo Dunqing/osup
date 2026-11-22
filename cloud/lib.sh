@@ -77,6 +77,14 @@ if json.dumps(s, sort_keys=True) != before:
 PY
 }
 
+# unsign DIR: turn off commit signing in a checkout and its submodules. The image signs
+# globally with a key for its agent identity, and its Stop hook asks to re-author unpushed
+# commits by anyone else; commits here are the user's, and unsigned ones skip that check.
+unsign() {
+    git -C "$1" config commit.gpgsign false &&
+        git -C "$1" submodule foreach --quiet --recursive 'git config commit.gpgsign false'
+}
+
 # pin node|cargo-shear VERSION: install a pinned version once (serialized across jobs, atomic).
 pin() {
     [ ! -d "$OPT/$1-$2" ] || return 0

@@ -17,6 +17,9 @@ claude_settings 2> /tmp/refresh-settings.log ||
 et $BASE_TOOLS $CLOUD_TOOLS gh-stack > /tmp/refresh-tools.log 2>&1 ||
     echo "Environment: some cloud tools could not be installed; see /tmp/refresh-tools.log."
 cd "$(cat "$OPT/base")" 2> /dev/null || exit 0
+# dotfiles gets no setup-repo, so turn its signing off here (setup-repo does it for the rest).
+[ ! -e dotfiles/.git ] || unsign dotfiles 2> /dev/null ||
+    echo "Environment: could not turn off commit signing in dotfiles."
 for g in */.git */*/.git; do
     c=${g%/.git}
     [ -d "$g" ] && [ "$c" != dotfiles ] && [ "$PWD/$c" != "$src" ] || continue

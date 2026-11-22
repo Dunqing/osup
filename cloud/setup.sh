@@ -84,6 +84,7 @@ for d in ${R[@]+"${R[@]}"}; do
 done
 et gh-stack > /tmp/setup-gh-stack.log 2>&1 & P+=($!) N+=(gh-stack)
 if [ -n "$dotfiles" ]; then
+    unsign "$dotfiles" || FAILED+=" unsign:dotfiles"
     bash "$dotfiles/bare-script/install-agents.sh" "$@" > /tmp/setup-dotfiles.log 2>&1 & P+=($!) N+=(dotfiles)
 fi
 for i in "${!P[@]}"; do

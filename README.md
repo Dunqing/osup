@@ -81,7 +81,8 @@ from starting) and lists failures at the end. It:
 `setup-repo <checkout>` installs one checkout's pinned Node and cargo-shear, Rust toolchain
 and dependencies (Oxc and Rolldown have their own steps), fetches crates, and gives a
 shallow clone its default branch, `origin/HEAD` and a merge-base. It also sets
-`commit.gpgsign false` in the checkout: commits there are the user's, and the image's signing
+`commit.gpgsign false` in the checkout and its submodules (`setup.sh` and `refresh` do the
+same for `dotfiles`, which gets no `setup-repo`): commits there are the user's, and the image's signing
 key and Stop hook expect the agent's identity. Run it for a repository added mid-session.
 
 The environment saves the container after setup; later sessions start from that snapshot

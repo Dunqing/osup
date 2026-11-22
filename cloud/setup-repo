@@ -2,7 +2,7 @@
 # setup-repo CHECKOUT: set up one checkout; safe to re-run. Installs its pinned Node and
 # cargo-shear, Rust toolchain, dependencies, submodules and crates, and gives a shallow clone
 # a local default branch, origin/HEAD and a merge-base with the session branch (gh stack, diffs).
-# Turns off commit signing in the checkout: commits are the user's, and the image's signing
+# Turns off commit signing in the checkout and its submodules: commits are the user's, and the image's signing
 # key only verifies commits by its own agent identity.
 set -euo pipefail
 . /opt/devtools/lib.sh
@@ -19,9 +19,6 @@ if [ -n "$S" ]; then
     [ -s "$OPT/cargo-shear.default" ] || echo "$S" > "$OPT/cargo-shear.default"
 fi
 rusttc
-# The image sets commit.gpgsign globally; its Stop hook then asks to re-author unpushed
-# commits as the agent so they show as Verified. Unsigned commits skip that check.
-git config commit.gpgsign false
 # pnpm without an image Node: the latest from npm, which switches to package.json's
 # packageManager version itself.
 [ ! -f pnpm-lock.yaml ] || command -v pnpm > /dev/null || npm_global pnpm pnpm
@@ -47,6 +44,7 @@ case $name in
         [ ! -f .gitmodules ] || git submodule update --init --depth 1 ;;
 esac
 [ ! -f Cargo.toml ] || cargo fetch
+unsign .
 m=$(git ls-remote --symref origin HEAD | sed -n 's#^ref: refs/heads/\(.*\)\tHEAD$#\1#p')
 b=$(git branch --show-current)
 git fetch -q --depth=200 origin "+$m:refs/remotes/origin/$m"
