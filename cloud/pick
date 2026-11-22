@@ -1,0 +1,20 @@
+#!/bin/bash
+# Shim for node, npm, npx, corepack and cargo-shear: use the version pinned by the nearest
+# .node-version (Node) or justfile (cargo-shear), else the default. A pinned version that
+# isn't installed yet is installed on first use.
+t=${0##*/} k=node f=.node-version
+[ "$t" != cargo-shear ] || { k=cargo-shear; f=justfile; }
+d=$PWD
+while [ "$d" != / ] && [ ! -f "$d/$f" ]; do d=$(dirname "$d"); done
+if [ $k = node ]; then v=$(cat "$d/$f" 2> /dev/null || true); v=${v#v}
+else v=$(grep -so 'cargo-shear@[0-9.]*' "$d/$f" | cut -d@ -f2 || true); fi
+if [ -n "$v" ] && [ ! -d "/opt/devtools/$k-$v" ]; then
+    echo "pick: installing $k $v (pinned in $d/$f)" >&2
+    (. /opt/devtools/lib.sh && pin $k "$v") >&2 || echo "pick: could not install $k $v; using the default" >&2
+fi
+[ -n "$v" ] && [ -d "/opt/devtools/$k-$v" ] || v=$(cat "/opt/devtools/$k.default")
+if [ $k = node ]; then
+    [ -d "/opt/devtools/node-$v" ] || v=system
+    exec "/opt/devtools/node-$v/bin/$t" "$@"
+fi
+exec "/opt/devtools/cargo-shear-$v/cargo-shear" "$@"

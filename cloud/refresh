@@ -1,0 +1,30 @@
+#!/bin/bash
+# Session-start hook. Updates the osup clone, copies changed cloud scripts from it,
+# installs cloud tools that are missing, and re-runs setup-repo for each checkout whose
+# fingerprint (fp) changed since its last setup. Prints only what it did or what failed.
+. /opt/devtools/lib.sh
+touch "$OPT/state/.checked"
+src=$(cat "$OPT/src" 2> /dev/null)
+if [ -d "$src/.git" ]; then
+    timeout 30 git -C "$src" fetch -q --depth 1 origin HEAD 2> /dev/null && git -C "$src" reset -q --hard FETCH_HEAD
+    for f in $CLOUD_SCRIPTS; do
+        cmp -s "$src/cloud/$f" "$OPT/$f" || { install_scripts "$src/cloud" && . "$OPT/lib.sh"; break; }
+    done
+fi
+et $CLOUD_TOOLS gh-stack > /tmp/refresh-tools.log 2>&1 ||
+    echo "Environment: some cloud tools could not be installed; see /tmp/refresh-tools.log."
+cd "$(cat "$OPT/base")" 2> /dev/null || exit 0
+for g in */.git */*/.git; do
+    c=${g%/.git}
+    [ -d "$g" ] && [ "$c" != dotfiles ] && [ "$PWD/$c" != "$src" ] || continue
+    n=$(basename "$(git -C "$c" remote get-url origin 2> /dev/null)" .git)
+    s="$OPT/state/$n.fp"
+    # Nested checkouts only once set up (setup-repo or add_repo); top-level ones always.
+    [ -f "$s" ] || [ "${c%/*}" = "$c" ] || continue
+    [ "$(cd "$c" && fp)" != "$(cat "$s" 2> /dev/null)" ] || continue
+    if setup-repo "$c" > "/tmp/refresh-$n.log" 2>&1; then
+        echo "Environment: re-ran setup-repo for $c (its pins, lockfiles, suites or setup changed)."
+    else
+        echo "Environment: setup-repo $c failed; see /tmp/refresh-$n.log and re-run it."
+    fi
+done

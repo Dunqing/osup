@@ -1,0 +1,40 @@
+# Command-line tools a machine should have, used by ensure-tools.sh
+# for a new machine (--all) and by agents when a skill needs a tool.
+#
+# name | check command | installers, in order of preference | needs | os
+#
+# Homebrew refuses to install as root, so cloud sessions (root) use apt, GitHub releases, npm, cargo, or go.
+# Node.js packages install through Vite+ (`vp install -g`; `vp update -g` updates them);
+# npm is the fallback where Vite+ is missing (cloud containers).
+#
+# Installers (the first one usable on this machine wins):
+#   brew:FORMULA   apt:PACKAGE   vp:NPM-PACKAGE   npm:PACKAGE   cargo:CRATE   go:MODULE/PATH
+#   gh-ext:OWNER/REPO
+#   gh-release:OWNER/REPO/ASSET   a Linux x86_64 asset of the newest release; {tag} and
+#                  {v} (the tag without v) are filled in, and the check's command is installed
+#   script:NAME    a named installer in ensure-tools.sh
+#   manual:TEXT    cannot be installed by script; print TEXT instead
+# os: any (default), darwin, or linux; add `nonroot` to skip the tool when running as root.
+
+brew        | brew --version             | script:homebrew                                                                                                        |              | nonroot
+git         | git --version              | brew:git apt:git                                                                                                       |              |
+curl        | curl --version             | brew:curl apt:curl                                                                                                     |              |
+gh          | gh --version               | brew:gh apt:gh                                                                                                         |              |
+gh-stack    | gh stack --version         | gh-ext:github/gh-stack script:gh-stack-rest                                                                            | gh git       |
+zsh         | zsh --version              | brew:zsh apt:zsh                                                                                                       |              |
+oh-my-zsh   | test -d "$HOME/.oh-my-zsh" | script:oh-my-zsh                                                                                                       | zsh git curl |
+starship    | starship --version         | brew:starship script:starship                                                                                          | curl         |
+viteplus    | vp help                    | script:viteplus                                                                                                        | curl         |
+python3     | python3 --version          | brew:python apt:python3                                                                                                |              |
+rust        | cargo --version            | script:rustup                                                                                                          | curl         |
+just        | just --version             | brew:just gh-release:casey/just/just-{tag}-x86_64-unknown-linux-musl.tar.gz apt:just cargo:just                        |              |
+cargo-insta | cargo-insta --version      | brew:cargo-insta gh-release:mitsuhiko/insta/cargo-insta-x86_64-unknown-linux-musl.tar.xz cargo:cargo-insta             |              |
+watchexec   | watchexec --version        | brew:watchexec gh-release:watchexec/watchexec/watchexec-{v}-x86_64-unknown-linux-musl.tar.xz cargo:watchexec-cli       |              |
+cargo-deny  | cargo-deny --version       | brew:cargo-deny gh-release:EmbarkStudios/cargo-deny/cargo-deny-{tag}-x86_64-unknown-linux-musl.tar.gz cargo:cargo-deny |              |
+typos       | typos --version            | brew:typos-cli gh-release:crate-ci/typos/typos-{tag}-x86_64-unknown-linux-musl.tar.gz cargo:typos-cli                  |              |
+ripgrep     | rg --version               | brew:ripgrep apt:ripgrep cargo:ripgrep                                                                                 |              |
+ast-grep    | ast-grep --version         | brew:ast-grep gh-release:ast-grep/ast-grep/app-x86_64-unknown-linux-gnu.zip vp:@ast-grep/cli npm:@ast-grep/cli |              |
+cf          | cloudflare --version       | vp:cf npm:cf                                                                                                           |              |
+age         | age --version              | brew:age apt:age                                                                                                       |              |
+sops        | sops --version             | brew:sops go:github.com/getsops/sops/v3/cmd/sops                                                                       |              |
+bw          | bw --version               | vp:@bitwarden/cli brew:bitwarden-cli npm:@bitwarden/cli                                                                |              |

@@ -1,0 +1,49 @@
+#!/bin/bash
+# setup-repo CHECKOUT: set up one checkout; safe to re-run. Installs its pinned Node and
+# cargo-shear, Rust toolchain, dependencies, submodules and crates, and gives a shallow clone
+# a local default branch, origin/HEAD and a merge-base with the session branch (gh stack, diffs).
+set -euo pipefail
+. /opt/devtools/lib.sh
+cd "${1:?usage: setup-repo <checkout-dir>}"
+name=$(basename "$(git remote get-url origin)" .git)
+V=$(cat .node-version 2> /dev/null || true); V=${V#v}
+S=$(grep -so 'cargo-shear@[0-9.]*' justfile | cut -d@ -f2 || true)
+if [ -n "$V" ]; then
+    pin node "$V"
+    [ "$(cat "$OPT/node.default")" != system ] || echo "$V" > "$OPT/node.default"
+fi
+if [ -n "$S" ]; then
+    pin cargo-shear "$S"
+    [ -s "$OPT/cargo-shear.default" ] || echo "$S" > "$OPT/cargo-shear.default"
+fi
+rusttc
+case $name in
+    oxc)
+        # Skip tasks/e2e (its lit tarball comes from codeload.github.com, refused in Claude Code
+        # cloud) and estree-conformance (2.6 GB; `just submodules` fetches it when needed).
+        pnpm install --frozen-lockfile --filter '!./tasks/e2e'
+        node .github/scripts/clone-parallel.mjs true true true false true
+        just update-transformer-fixtures
+        python3 -m pip install -q --root-user-action=ignore brotli ;; # compressed-size checks
+    rolldown)
+        # Vite+ from npm: its install script would also replace node/npm with its own shims.
+        "$NPM" i -g --no-update-notifier --no-audit --no-fund vite-plus
+        ln -sf "$("$NPM" prefix -g)/bin/vp" "$BIN/vp"
+        et cargo-deny typos
+        vp install
+        git submodule update --init --depth 1 ;;
+    *)
+        if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; elif [ -f package-lock.json ]; then npm ci; fi
+        [ ! -f .gitmodules ] || git submodule update --init --depth 1 ;;
+esac
+[ ! -f Cargo.toml ] || cargo fetch
+m=$(git ls-remote --symref origin HEAD | sed -n 's#^ref: refs/heads/\(.*\)\tHEAD$#\1#p')
+b=$(git branch --show-current)
+git fetch -q --depth=200 origin "+$m:refs/remotes/origin/$m"
+if [ -n "$b" ] && [ "$b" != "$m" ]; then
+    git fetch -q --depth=200 origin "+$b:refs/remotes/origin/$b" 2> /dev/null || true
+    git branch -f "$m" "origin/$m"
+fi
+git remote set-head origin "$m"
+fp > "$OPT/state/$name.fp"
+echo "setup-repo: $name ready"
