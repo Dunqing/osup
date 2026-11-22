@@ -9,6 +9,7 @@ dotfiles include this repository as a submodule; cloud environments clone it dir
 | [`gh-stack-rest/`](gh-stack-rest) | A `gh stack` build that uses REST instead of GraphQL. |
 | [`cloud/`](cloud) | Cloud container setup: `setup.sh`, plus the helpers it installs to `/opt/devtools`. |
 | [`test.sh`](test.sh) | Fixture tests for `ensure-tools.sh`. |
+| [`AGENTS.md`](AGENTS.md) | Rules and the test recipe for changing this repository. |
 
 ## Tools
 
