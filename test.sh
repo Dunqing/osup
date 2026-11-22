@@ -52,8 +52,14 @@ EOS
     case "$out" in *'ok       present'*) ;; *) printf '%s\n' "$out" >&2; exit 1 ;; esac
     # --path adds install directories that exist, once, ahead of PATH.
     mkdir -p "$fixture/home/.local/bin" "$fixture/home/.cargo/bin"
-    path="$(HOME="$fixture/home" PATH="/usr/bin:/bin:$fixture/home/.cargo/bin" bash "$fixture/bare-script/ensure-tools.sh" --path)"
-    [ "$path" = "$fixture/home/.local/bin:/usr/bin:/bin:$fixture/home/.cargo/bin" ] ||
+    base_path="/usr/bin:/bin:$fixture/home/.cargo/bin"
+    expected_path="$base_path"
+    # System Homebrew directories may exist independently of the fixture HOME.
+    if [ -d /opt/homebrew/bin ]; then expected_path="/opt/homebrew/bin:$expected_path"; fi
+    if [ -d /home/linuxbrew/.linuxbrew/bin ]; then expected_path="/home/linuxbrew/.linuxbrew/bin:$expected_path"; fi
+    expected_path="$fixture/home/.local/bin:$expected_path"
+    path="$(HOME="$fixture/home" PATH="$base_path" bash "$fixture/bare-script/ensure-tools.sh" --path)"
+    [ "$path" = "$expected_path" ] ||
         { printf 'unexpected --path: %s\n' "$path" >&2; exit 1; }
 )
 printf 'ensure-tools checks passed\n'
