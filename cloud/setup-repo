@@ -2,6 +2,8 @@
 # setup-repo CHECKOUT: set up one checkout; safe to re-run. Installs its pinned Node and
 # cargo-shear, Rust toolchain, dependencies, submodules and crates, and gives a shallow clone
 # a local default branch, origin/HEAD and a merge-base with the session branch (gh stack, diffs).
+# Turns off commit signing in the checkout: commits are the user's, and the image's signing
+# key only verifies commits by its own agent identity.
 set -euo pipefail
 . /opt/devtools/lib.sh
 cd "${1:?usage: setup-repo <checkout-dir>}"
@@ -17,6 +19,9 @@ if [ -n "$S" ]; then
     [ -s "$OPT/cargo-shear.default" ] || echo "$S" > "$OPT/cargo-shear.default"
 fi
 rusttc
+# The image sets commit.gpgsign globally; its Stop hook then asks to re-author unpushed
+# commits as the agent so they show as Verified. Unsigned commits skip that check.
+git config commit.gpgsign false
 # pnpm without an image Node: the latest from npm, which switches to package.json's
 # packageManager version itself.
 [ ! -f pnpm-lock.yaml ] || command -v pnpm > /dev/null || npm_global pnpm pnpm

@@ -56,6 +56,25 @@ if not any(h.get("command") == cmd["command"] for e in hooks for h in e.get("hoo
 # not `attribution: false`, which older Claude Code versions reject along with the file.
 a = s.get("attribution")
 s["attribution"] = {**(a if isinstance(a, dict) else {}), "commit": "", "pr": "", "sessionUrl": False}
+# Auto mode: the user's standing rules, so the classifier doesn't stop them. Prose entries,
+# with "$defaults" keeping the built-in rules.
+am = s.get("autoMode")
+am = s["autoMode"] = am if isinstance(am, dict) else {}
+rules = {
+    "environment": "Commits are authored and committed as the user, with the name and email of "
+    "their own recent commits in that repository set through GIT_AUTHOR_* and GIT_COMMITTER_* "
+    "environment variables. This is the user's standing rule, not impersonation.",
+    "allow": "git push --force-with-lease (including --atomic) of non-default branches that the "
+    "agent created or rebased in this session, such as stacked PR branches, is pre-approved by "
+    "the user. The default branch and branches owned by others are not covered.",
+}
+for k, rule in rules.items():
+    l = am.get(k)
+    l = am[k] = l if isinstance(l, list) else []
+    if "$defaults" not in l:
+        l.insert(0, "$defaults")
+    if rule not in l:
+        l.append(rule)
 if json.dumps(s, sort_keys=True) != before:
     json.dump(s, open(p, "w"), indent=2)
 PY

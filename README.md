@@ -74,13 +74,15 @@ from starting) and lists failures at the end. It:
 - installs each checkout's pinned Rust toolchain and the `CLOUD_TOOLS` from `lib.sh`, then
   runs `setup-repo` for every checkout, the `gh-stack` build and, when a `dotfiles`
   checkout is present, its agent profile installer, in parallel (logs in `/tmp/setup-*.log`);
-- for `claude`, adds `refresh` as a SessionStart hook and appends cloud notes to
-  `~/.claude/CLAUDE.md`.
+- for `claude`, adds `refresh` as a SessionStart hook, turns off commit and PR attribution,
+  adds two auto-mode rules (commits authored as the user; `--force-with-lease` pushes of the
+  session's own non-default branches) and appends cloud notes to `~/.claude/CLAUDE.md`.
 
 `setup-repo <checkout>` installs one checkout's pinned Node and cargo-shear, Rust toolchain
 and dependencies (Oxc and Rolldown have their own steps), fetches crates, and gives a
-shallow clone its default branch, `origin/HEAD` and a merge-base. Run it for a repository
-added mid-session.
+shallow clone its default branch, `origin/HEAD` and a merge-base. It also sets
+`commit.gpgsign false` in the checkout: commits there are the user's, and the image's signing
+key and Stop hook expect the agent's identity. Run it for a repository added mid-session.
 
 The environment saves the container after setup; later sessions start from that snapshot
 without running setup again. At each session start, `refresh` updates the clone in
