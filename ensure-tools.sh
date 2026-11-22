@@ -5,6 +5,7 @@
 #   ensure-tools.sh --all       ensure every tool for this OS (new machine)
 #   ensure-tools.sh --check [NAME...]   report only; exit 1 if any is missing
 #   ensure-tools.sh --dry-run NAME...   print what would be installed
+#   ensure-tools.sh --path      print PATH with the directories tools install into
 #
 # A tool already present is never touched. Installers are tried in the listed
 # order; the first one usable here (brew, apt, vp, npm, cargo, go, gh extension,
@@ -172,6 +173,7 @@ mode=install
 case "${1:-}" in
     --check) mode=check; shift ;;
     --dry-run) mode=dry-run; shift ;;
+    --path) refresh_path; printf '%s\n' "$PATH"; exit 0 ;;
 esac
 targets=()
 if [ "${1:-}" = --all ] || { [ "$mode" = check ] && [ "$#" -eq 0 ]; }; then
@@ -180,7 +182,7 @@ if [ "${1:-}" = --all ] || { [ "$mode" = check ] && [ "$#" -eq 0 ]; }; then
 fi
 targets+=("$@")
 if [ "${#targets[@]}" -eq 0 ]; then
-    sed -n '2,8s/^# \{0,1\}//p' "$0" >&2
+    sed -n '2,9s/^# \{0,1\}//p' "$0" >&2
     exit 2
 fi
 

@@ -50,5 +50,10 @@ EOS
         { printf 'unexpected vp call: %s\n' "$(cat "$fixture/vp-log")" >&2; exit 1; }
     out="$(PATH="$fixture/bin:$PATH" bash "$fixture/bare-script/ensure-tools.sh" --dry-run chained 2>&1 || true)"
     case "$out" in *'ok       present'*) ;; *) printf '%s\n' "$out" >&2; exit 1 ;; esac
+    # --path adds install directories that exist, once, ahead of PATH.
+    mkdir -p "$fixture/home/.local/bin" "$fixture/home/.cargo/bin"
+    path="$(HOME="$fixture/home" PATH="/usr/bin:/bin:$fixture/home/.cargo/bin" bash "$fixture/bare-script/ensure-tools.sh" --path)"
+    [ "$path" = "$fixture/home/.local/bin:/usr/bin:/bin:$fixture/home/.cargo/bin" ] ||
+        { printf 'unexpected --path: %s\n' "$path" >&2; exit 1; }
 )
 printf 'ensure-tools checks passed\n'
