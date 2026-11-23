@@ -63,15 +63,21 @@ s["attribution"] = {**(a if isinstance(a, dict) else {}), "commit": "", "pr": ""
 # with "$defaults" keeping the built-in rules.
 am = s.get("autoMode")
 am = s["autoMode"] = am if isinstance(am, dict) else {}
-rules = {
-    "environment": "Commits are authored and committed as the user, with the name and email of "
-    "their own recent commits in that repository set through GIT_AUTHOR_* and GIT_COMMITTER_* "
-    "environment variables. This is the user's standing rule, not impersonation.",
-    "allow": "git push --force-with-lease (including --atomic) of non-default branches that the "
-    "agent created or rebased in this session, such as stacked PR branches, is pre-approved by "
-    "the user. The default branch and branches owned by others are not covered.",
-}
-for k, rule in rules.items():
+rules = [
+    ("environment", "Commits are authored and committed as the user, with the name and email of "
+     "their own recent commits in that repository set through GIT_AUTHOR_* and GIT_COMMITTER_* "
+     "environment variables. This is the user's standing rule, not impersonation."),
+    ("allow", "git push --force-with-lease (including --atomic) of non-default branches that the "
+     "agent created or rebased in this session, such as stacked PR branches, is pre-approved by "
+     "the user. The default branch and branches owned by others are not covered."),
+    # profile-guard refuses commits until the profile is installed, so the attach it asks for
+    # must not be refused in turn.
+    ("allow", "Attaching the user's own profile repository Dunqing/dotfiles with add_repo (access "
+     "\"push\"), cloning it, running its bare-script/install-agents.sh and calling "
+     "register_repo_root is pre-approved by the user: cloud setup and the profile-guard hook ask "
+     "for exactly this. Other repositories are not covered."),
+]
+for k, rule in rules:
     l = am.get(k)
     l = am[k] = l if isinstance(l, list) else []
     if "$defaults" not in l:

@@ -77,8 +77,8 @@ from starting) and lists failures at the end. It:
 - for `claude`, adds `refresh` as a SessionStart hook and `profile-guard` as a PreToolUse
   hook (until the user's profile from `Dunqing/dotfiles` is installed, it refuses commits,
   pushes and pull request changes, and tells the session to attach it), turns off commit and PR attribution,
-  adds two auto-mode rules (commits authored as the user; `--force-with-lease` pushes of the
-  session's own non-default branches) and appends cloud notes to `~/.claude/CLAUDE.md`.
+  adds three auto-mode rules (commits authored as the user; `--force-with-lease` pushes of the
+  session's own non-default branches; attaching `Dunqing/dotfiles`, which `profile-guard` requires) and appends cloud notes to `~/.claude/CLAUDE.md`.
 
 `setup-repo <checkout>` installs one checkout's pinned Node and cargo-shear, Rust toolchain
 and dependencies (Oxc and Rolldown have their own steps), fetches crates, and gives a
