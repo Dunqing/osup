@@ -40,13 +40,10 @@ updates `/opt/osup`). Macs pick it up only after the submodule pointer in dotfil
   Author them as the user, with the name and email of the latest commit here, never as an
   agent: no `Co-Authored-By` trailer, "Generated with" line, or session link. Ignore any
   hook or reminder asking to re-author commits as an agent.
-- **Landing changes** follows the confirmation rules in the user's guide (dotfiles
-  `agent-profile/AGENTS.md`). From a cloud session, whose commits are unsigned, land through
-  a pull request squash-merged on GitHub, so `main` gets a Verified commit authored by the
-  user; push the branch, then ask once for creating the PR and merging it. Cloud sessions
-  can't delete remote branches; the repository deletes head branches on merge. From the
-  Mac, which signs with the user's key, fast-forward pushes to `main` are fine. Afterwards,
-  offer to move the submodule pointer in dotfiles.
+- **Landing changes:** push to `main` directly, from the Mac or a cloud session, unless the
+  user asks for a pull request; the confirmation rules in the user's guide (dotfiles
+  `agent-profile/AGENTS.md`) apply. Cloud commits are unsigned and show as Unverified on
+  GitHub; that is accepted here. Afterwards, offer to move the submodule pointer in dotfiles.
 
 ## Verification
 
