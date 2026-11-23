@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""PreToolUse hook: no commits, pushes or PR changes until the user's profile is installed.
+
+Claude Code passes the pending tool call as JSON on stdin. While ~/.agents/AGENTS.md is
+missing (Dunqing/dotfiles isn't attached, so install-agents.sh hasn't run), calls that would
+commit, push, or create or change a pull request are refused with exit code 2, and stderr
+tells the agent how to attach the profile. Everything else, and everything once the profile
+is installed, passes. A call this script cannot parse passes too, so a bug here never
+blocks unrelated work.
+"""
+
+import json
+import os
+import re
+import sys
+
+PROFILE = os.path.expanduser("~/.agents/AGENTS.md")
+
+# git's own options may come before the subcommand: git -C dir -c k=v --no-pager commit
+GIT = r"(?:^|[\s;&|(`$])git(?:\s+(?:-C|-c)\s+\S+|\s+--?[\w-]+(?:=\S+)?)*\s+(?:commit|push)\b"
+GH_PR = r"(?:^|[\s;&|(`$])gh\s+(?:pr\s+(?:create|edit|merge|ready)|stack\s+(?:push|submit|sync|merge))\b"
+GH_API = r"(?:^|[\s;&|(`$])gh\s+api\b(?=.*\b(?:pulls|git/(?:commits|refs))\b)(?=.*(?:-X|--method)\s*(?:POST|PATCH|PUT))"
+COMMAND = re.compile("|".join((GIT, GH_PR, GH_API)), re.S)
+
+GITHUB_WRITES = {
+    "create_pull_request", "update_pull_request", "merge_pull_request",
+    "push_files", "create_or_update_file", "delete_file", "create_branch",
+    "update_pull_request_branch",
+}
+
+MESSAGE = """Blocked: the user's profile isn't installed in this session, so commits, pushes and \
+pull request changes would skip their commit identity and PR-writing rules. Attach it first: \
+call add_repo with owner Dunqing, repo dotfiles and access "push", clone it where add_repo says, \
+run `bash <checkout>/bare-script/install-agents.sh claude`, call register_repo_root, and read \
+~/.agents/AGENTS.md. Then retry this step, following that guide and the writing-commits-and-prs \
+skill. If attaching is refused, stop and tell the user."""
+
+
+def blocked(call):
+    tool = call.get("tool_name") or ""
+    args = call.get("tool_input") or {}
+    if tool == "Bash":
+        return bool(COMMAND.search(str(args.get("command") or "")))
+    if tool.startswith("mcp__github__"):
+        return tool[len("mcp__github__"):] in GITHUB_WRITES
+    return False
+
+
+def main():
+    if os.path.exists(PROFILE):
+        return 0
+    try:
+        call = json.load(sys.stdin)
+    except ValueError:
+        return 0
+    if isinstance(call, dict) and blocked(call):
+        print(MESSAGE, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

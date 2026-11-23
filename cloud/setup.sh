@@ -55,8 +55,16 @@ tools, and `gh stack` (a REST build, see Dunqing/osup gh-stack-rest). Sessions u
 only the repository the task is about; if a task also needs rolldown/rolldown or oxc-project/oxc
 (for example a Rolldown bug that may come from Oxc), attach it as above and run `setup-repo` on it.
 MD
-    [ -n "$dotfiles" ] || grep -qs 'Dunqing/dotfiles' ~/.claude/CLAUDE.md ||
-        echo "Dunqing/dotfiles isn't attached to this session, so the user's personal skills and guide aren't loaded; say so if a task needs them." >> ~/.claude/CLAUDE.md
+    [ -n "$dotfiles" ] || grep -qs 'Dunqing/dotfiles' ~/.claude/CLAUDE.md || cat >> ~/.claude/CLAUDE.md << 'MD'
+# Personal profile
+Dunqing/dotfiles isn't attached to this session, so the user's guide (commit identity,
+confirmations, communication) and personal skills (such as writing-commits-and-prs for commit
+messages and PR descriptions) aren't loaded. Attach it before other work: call add_repo with
+owner Dunqing, repo dotfiles and access "push", clone it where add_repo says, run
+`bash <checkout>/bare-script/install-agents.sh claude`, and call register_repo_root. Then read
+~/.agents/AGENTS.md and follow it for the rest of the session; the personal skills appear in
+the skill list. If attaching is refused, tell the user before writing commits or PR text.
+MD
 }
 
 # Checkouts here except dotfiles, oxc first so its Node and cargo-shear become the defaults.
