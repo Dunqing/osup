@@ -11,7 +11,7 @@ NPM=$OPT/node-system/bin/npm
 BASE_TOOLS="curl python3 xz unzip cc rust go"
 # Machine tools from tools.list that every checkout uses. gh-stack is built separately (~25s).
 CLOUD_TOOLS="just cargo-insta watchexec ast-grep"
-CLOUD_SCRIPTS="lib.sh pick setup-repo refresh"
+CLOUD_SCRIPTS="lib.sh pick setup-repo refresh profile-guard"
 
 # et TOOL...: ensure-tools from the osup checkout; without one, installed tools still work.
 et() {
@@ -36,7 +36,7 @@ install_scripts() {
     done
 }
 
-# claude_settings: merge the SessionStart hook, attribution and auto-mode rules into
+# claude_settings: merge the SessionStart and profile-guard hooks, attribution and auto-mode rules into
 # ~/.claude/settings.json, keeping other keys; writes only when something changes. Run by
 # setup.sh and, so existing environments pick up changes, by refresh.
 claude_settings() {
@@ -49,6 +49,12 @@ hooks = s.setdefault("hooks", {}).setdefault("SessionStart", [])
 cmd = {"type": "command", "command": "/opt/devtools/refresh", "timeout": 900}
 if not any(h.get("command") == cmd["command"] for e in hooks for h in e.get("hooks", [])):
     hooks.append({"hooks": [cmd]})
+# Until the user's profile (Dunqing/dotfiles) is installed, refuse commits, pushes and PR
+# changes, so a session started without it can't skip the commit identity and PR rules.
+pre = s["hooks"].setdefault("PreToolUse", [])
+guard = {"type": "command", "command": "/opt/devtools/profile-guard", "timeout": 10}
+if not any(h.get("command") == guard["command"] for e in pre for h in e.get("hooks", [])):
+    pre.append({"matcher": "Bash|mcp__github__.*", "hooks": [guard]})
 # No Co-Authored-By trailer, PR footer, or session link, in any repository. Empty strings,
 # not `attribution: false`, which older Claude Code versions reject along with the file.
 a = s.get("attribution")

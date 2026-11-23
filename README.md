@@ -65,8 +65,8 @@ from `.node-version`, and pnpm when no image Node provides it.
 [`cloud/setup.sh`](cloud/setup.sh) always exits 0 (a failing setup script stops the session
 from starting) and lists failures at the end. It:
 
-- copies [`lib.sh`](cloud/lib.sh), [`pick`](cloud/pick), [`setup-repo`](cloud/setup-repo)
-  and [`refresh`](cloud/refresh) to `/opt/devtools`, and links `pick` as `node`, `npm`,
+- copies [`lib.sh`](cloud/lib.sh), [`pick`](cloud/pick), [`setup-repo`](cloud/setup-repo),
+  [`refresh`](cloud/refresh) and [`profile-guard`](cloud/profile-guard) to `/opt/devtools`, and links `pick` as `node`, `npm`,
   `npx`, `corepack` and `cargo-shear`, so each runs the version pinned by the nearest
   `.node-version` or `justfile` (installed on first use);
 - installs the `BASE_TOOLS` that are missing and puts `~/.local/bin` and `~/.cargo/bin` on
@@ -74,7 +74,9 @@ from starting) and lists failures at the end. It:
 - installs each checkout's pinned Rust toolchain and the `CLOUD_TOOLS` from `lib.sh`, then
   runs `setup-repo` for every checkout, the `gh-stack` build and, when a `dotfiles`
   checkout is present, its agent profile installer, in parallel (logs in `/tmp/setup-*.log`);
-- for `claude`, adds `refresh` as a SessionStart hook, turns off commit and PR attribution,
+- for `claude`, adds `refresh` as a SessionStart hook and `profile-guard` as a PreToolUse
+  hook (until the user's profile from `Dunqing/dotfiles` is installed, it refuses commits,
+  pushes and pull request changes, and tells the session to attach it), turns off commit and PR attribution,
   adds two auto-mode rules (commits authored as the user; `--force-with-lease` pushes of the
   session's own non-default branches) and appends cloud notes to `~/.claude/CLAUDE.md`.
 

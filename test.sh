@@ -62,4 +62,52 @@ EOS
     [ "$path" = "$expected_path" ] ||
         { printf 'unexpected --path: %s\n' "$path" >&2; exit 1; }
 )
+# profile-guard: commits, pushes and PR changes wait for the user's profile; other calls pass.
+(
+    set -euo pipefail
+    guard="$here/cloud/profile-guard" home="$fixture/guard-home"
+    mkdir -p "$home"
+    call() { HOME="$home" python3 "$guard" <<< "$1" 2> /dev/null; }
+    bash_call() { jq -cn --arg c "$1" '{tool_name: "Bash", tool_input: {command: $c}}'; }
+    blocked=(
+        "$(bash_call 'git commit -m fix')"
+        "$(bash_call 'git -C crates/x -c user.name=A commit -qam fix')"
+        "$(bash_call 'cargo fmt && git commit -am "x"')"
+        "$(bash_call 'git push -u origin topic')"
+        "$(bash_call 'GIT_AUTHOR_NAME=X git commit -m y')"
+        "$(bash_call 'gh pr create --fill')"
+        "$(bash_call 'gh pr edit 12 --body-file b.md')"
+        "$(bash_call 'gh stack submit --auto')"
+        "$(bash_call 'gh api -X PATCH repos/o/r/pulls/1 -F body=@b.md')"
+        '{"tool_name":"mcp__github__create_pull_request","tool_input":{}}'
+        '{"tool_name":"mcp__github__update_pull_request","tool_input":{}}'
+        '{"tool_name":"mcp__github__push_files","tool_input":{}}'
+    )
+    allowed=(
+        "$(bash_call 'git status')"
+        "$(bash_call 'git log --oneline -3')"
+        "$(bash_call 'git diff HEAD~1')"
+        "$(bash_call 'cargo test -p oxc_minifier')"
+        "$(bash_call 'gh pr view 12 --json body')"
+        "$(bash_call 'gh api repos/o/r/pulls/1')"
+        "$(bash_call 'grep -rn "git commit" docs')"
+        '{"tool_name":"mcp__github__pull_request_read","tool_input":{}}'
+        '{"tool_name":"Read","tool_input":{"file_path":"/x"}}'
+        'not json'
+    )
+    for c in "${blocked[@]}"; do
+        status=0; call "$c" || status=$?
+        [ "$status" -eq 2 ] || { printf 'not blocked without a profile: %s\n' "$c" >&2; exit 1; }
+    done
+    for c in "${allowed[@]}"; do
+        call "$c" || { printf 'blocked although harmless: %s\n' "$c" >&2; exit 1; }
+    done
+    out="$(HOME="$home" python3 "$guard" <<< "${blocked[0]}" 2>&1 || true)"
+    case "$out" in *'add_repo'*'Dunqing'*'install-agents.sh'*) ;; *) printf '%s\n' "$out" >&2; exit 1 ;; esac
+    mkdir -p "$home/.agents" && echo guide > "$home/.agents/AGENTS.md"
+    for c in "${blocked[@]}"; do
+        call "$c" || { printf 'blocked with a profile: %s\n' "$c" >&2; exit 1; }
+    done
+)
 printf 'ensure-tools checks passed\n'
+
