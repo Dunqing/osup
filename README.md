@@ -76,7 +76,8 @@ from starting) and lists failures at the end. It:
   checkout is present, its agent profile installer, in parallel (logs in `/tmp/setup-*.log`);
 - for `claude`, adds `refresh` as a SessionStart hook and `profile-guard` as a PreToolUse
   hook (until the user's profile from `Dunqing/dotfiles` is installed, it refuses commits,
-  pushes and pull request changes, and tells the session to attach it), turns off commit and PR attribution,
+  pushes and pull request changes, and tells the session to attach it; the profile then turns
+  off commit and PR attribution),
   adds three auto-mode rules (commits authored as the user; `--force-with-lease` pushes of the
   session's own non-default branches; attaching `Dunqing/dotfiles`, which `profile-guard` requires) and appends cloud notes to `~/.claude/CLAUDE.md`.
 

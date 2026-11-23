@@ -36,7 +36,7 @@ install_scripts() {
     done
 }
 
-# claude_settings: merge the SessionStart and profile-guard hooks, attribution and auto-mode rules into
+# claude_settings: merge the SessionStart and profile-guard hooks and the auto-mode rules into
 # ~/.claude/settings.json, keeping other keys; writes only when something changes. Run by
 # setup.sh and, so existing environments pick up changes, by refresh.
 claude_settings() {
@@ -55,10 +55,6 @@ pre = s["hooks"].setdefault("PreToolUse", [])
 guard = {"type": "command", "command": "/opt/devtools/profile-guard", "timeout": 10}
 if not any(h.get("command") == guard["command"] for e in pre for h in e.get("hooks", [])):
     pre.append({"matcher": "Bash|mcp__github__.*", "hooks": [guard]})
-# No Co-Authored-By trailer, PR footer, or session link, in any repository. Empty strings,
-# not `attribution: false`, which older Claude Code versions reject along with the file.
-a = s.get("attribution")
-s["attribution"] = {**(a if isinstance(a, dict) else {}), "commit": "", "pr": "", "sessionUrl": False}
 # Auto mode: the user's standing rules, so the classifier doesn't stop them. Prose entries,
 # with "$defaults" keeping the built-in rules.
 am = s.get("autoMode")
