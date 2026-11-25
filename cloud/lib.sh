@@ -53,8 +53,12 @@ if not any(h.get("command") == cmd["command"] for e in hooks for h in e.get("hoo
 # changes, so a session started without it can't skip the commit identity and PR rules.
 pre = s["hooks"].setdefault("PreToolUse", [])
 guard = {"type": "command", "command": "/opt/devtools/profile-guard", "timeout": 10}
-if not any(h.get("command") == guard["command"] for e in pre for h in e.get("hooks", [])):
-    pre.append({"matcher": "Bash|mcp__github__.*", "hooks": [guard]})
+matcher = "Bash|mcp__github__.*|mcp__claude-code-remote__add_repo"
+entries = [e for e in pre if any(h.get("command") == guard["command"] for h in e.get("hooks", []))]
+if not entries:
+    pre.append({"matcher": matcher, "hooks": [guard]})
+for e in entries:  # environments set up before add_repo joined the matcher
+    e["matcher"] = matcher
 # Auto mode: the user's standing rules, so the classifier doesn't stop them. Prose entries,
 # with "$defaults" keeping the built-in rules.
 am = s.get("autoMode")

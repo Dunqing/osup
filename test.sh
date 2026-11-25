@@ -104,10 +104,32 @@ EOS
     done
     out="$(HOME="$home" python3 "$guard" <<< "${blocked[0]}" 2>&1 || true)"
     case "$out" in *'add_repo'*'Dunqing'*'install-agents.sh'*) ;; *) printf '%s\n' "$out" >&2; exit 1 ;; esac
+    # It approves the add_repo call for the profile itself, and no other repository.
+    attach() { jq -cn --arg o "$1" --arg r "$2" '{tool_name: "mcp__claude-code-remote__add_repo", tool_input: {owner: $o, repo: $r, access: "push"}}'; }
+    check_attach() {
+        for c in "$(attach Dunqing dotfiles)" "$(attach dunqing Dotfiles)"; do
+            [ "$(call "$c" | jq -r .hookSpecificOutput.permissionDecision)" = allow ] ||
+                { printf 'profile attach not approved: %s\n' "$c" >&2; exit 1; }
+        done
+        for c in "$(attach Dunqing osup)" "$(attach oxc-project oxc)" "$(attach Someone dotfiles)"; do
+            [ -z "$(call "$c")" ] || { printf 'approved another repository: %s\n' "$c" >&2; exit 1; }
+        done
+    }
+    check_attach
     mkdir -p "$home/.agents" && echo guide > "$home/.agents/AGENTS.md"
+    check_attach
     for c in "${blocked[@]}"; do
         call "$c" || { printf 'blocked with a profile: %s\n' "$c" >&2; exit 1; }
     done
+)
+# claude_settings widens an older profile-guard entry's matcher rather than adding a second.
+(
+    set -euo pipefail
+    home="$fixture/settings-home"; mkdir -p "$home/.claude"
+    printf '%s' '{"hooks":{"PreToolUse":[{"matcher":"Bash|mcp__github__.*","hooks":[{"type":"command","command":"/opt/devtools/profile-guard","timeout":10}]}]}}' > "$home/.claude/settings.json"
+    HOME="$home" bash -c ". '$here/cloud/lib.sh'; claude_settings && claude_settings"
+    jq -e '[.hooks.PreToolUse[] | select(.hooks[].command == "/opt/devtools/profile-guard")] | length == 1 and (.[0].matcher | test("add_repo"))' \
+        "$home/.claude/settings.json" > /dev/null || { cat "$home/.claude/settings.json" >&2; exit 1; }
 )
 printf 'ensure-tools checks passed\n'
 

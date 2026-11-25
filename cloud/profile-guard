@@ -7,6 +7,10 @@ commit, push, or create or change a pull request are refused with exit code 2, a
 tells the agent how to attach the profile. Everything else, and everything once the profile
 is installed, passes. A call this script cannot parse passes too, so a bug here never
 blocks unrelated work.
+
+It also answers the permission prompt for the one call it asks for: add_repo of
+Dunqing/dotfiles is approved, so the user isn't asked again in every new session. Other
+add_repo calls get the normal prompt.
 """
 
 import json
@@ -46,14 +50,30 @@ def blocked(call):
     return False
 
 
+def is_profile_attach(call):
+    if call.get("tool_name") != "mcp__claude-code-remote__add_repo":
+        return False
+    args = call.get("tool_input") or {}
+    return (str(args.get("owner", "")).lower(), str(args.get("repo", "")).lower()) == ("dunqing", "dotfiles")
+
+
 def main():
-    if os.path.exists(PROFILE):
-        return 0
     try:
         call = json.load(sys.stdin)
     except ValueError:
         return 0
-    if isinstance(call, dict) and blocked(call):
+    if not isinstance(call, dict):
+        return 0
+    if is_profile_attach(call):
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "The user's profile repository, which profile-guard requires.",
+        }}))
+        return 0
+    if os.path.exists(PROFILE):
+        return 0
+    if blocked(call):
         print(MESSAGE, file=sys.stderr)
         return 2
     return 0
